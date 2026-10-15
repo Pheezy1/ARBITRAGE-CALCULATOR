@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <title>Arbitrage Calculator with History Log</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary-color: #10b981;
+            --primary-hover: #059669;
+            --danger-color: #ef4444;
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        header p {
+            color: var(--text-muted);
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 900px) {
+            .grid-layout {
+                grid-template-columns: 450px 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        h2, h3 {
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            width: 100%;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .odds-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .results-box {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 2px dashed var(--border-color);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .status-badge.profitable {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.negative {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .results-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+        }
+
+        .font-bold {
+            font-weight: 700;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f9fafb;
+            color: var(--text-muted);
+        }
+
+        .text-green { color: #059669; font-weight: 600; }
+        .text-red { color: #dc2626; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Arbitrage Betting Calculator</h1>
+            <p>Calculate surebets and keep a detailed log of your calculations.</p>
+        </header>
+
+        <div class="grid-layout">
+            <!-- Calculator Inputs -->
+            <main class="card">
+                <h2>Calculate Bet</h2>
+                <form id="arb-form">
+                    <div class="input-group">
+                        <label for="total-investment">Total Investment ($)</label>
+                        <input type="number" id="total-investment" value="1000" step="any" required>
+                    </div>
+
+                    <div class="odds-section">
+                        <div class="input-group">
+                            <label for="odds-1">Outcome 1 Odds</label>
+                            <input type="number" id="odds-1" value="2.15" step="0.01" min="1.01" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="odds-2">Outcome 2 Odds</label>
+                            <input type="number" id="odds-2" value="1.95" step="0.01" min="1.01" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Calculate & Log Entry</button>
+                </form>
+
+                <!-- Results -->
+                <div id="results-box" class="results-box hidden">
+                    <h3>Calculation Summary</h3>
+                    <div id="arb-status" class="status-badge"></div>
+                    <div class="results-grid">
+                        <div class="result-item"><span>Outcome 1 Stake:</span><span id="res-stake-1">--</span></div>
+                        <div class="result-item"><span>Outcome 2 Stake:</span><span id="res-stake-2">--</span></div>
+                        <div class="result-item font-bold"><span>Total Payout:</span><span id="res-payout">--</span></div>
+                        <div class="result-item font-bold"><span>Net Profit/Loss:</span><span id="res-profit">--</span></div>
+                        <div class="result-item font-bold"><span>ROI:</span><span id="res-roi">--</span></div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- History Log -->
+            <aside class="card">
+                <div class="history-header">
+                    <h2>Calculation History Log</h2>
+                    <button id="clear-history-btn" class="btn-secondary">Clear All</button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Total</th>
+                                <th>Odds (1/2)</th>
+                                <th>Stakes (1/2)</th>
+                                <th>Profit (ROI)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('arb-form');
+            const historyBody = document.getElementById('history-body');
+            const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+            // Register background service worker for mobile PWA support
+               if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                   .then(() => console.log('Mobile Service Worker Registered!'))
+                   .catch((err) => console.log('Worker registration failed:', err));
+            }
+
+
+            // Secure memory-safe array layer if localStorage is blocked by local machine security policies
+            let localMemoryHistory = [];
+
+            // Helper function to safely read data
+            function getHistoryData() {
+                try {
+                    let stored = localStorage.getItem('arb_logs');
+                    return stored ? JSON.parse(stored) : localMemoryHistory;
+                } catch (e) {
+                    console.warn("Could not read from local storage:", e);
+                    return localMemoryHistory;
+                }
+            }
+
+            // Helper function to safely save data
+            function saveHistoryData(data) {
+                localMemoryHistory = data;
+                try {
+                    localStorage.setItem('arb_logs', JSON.stringify(data));
+                } catch (e) {
+                    console.warn("LocalStorage blocked by browser profile. Using secure runtime variables instead.", e);
+                }
+            }
+
+            // Initial view generation
+            renderHistory();
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault(); 
+
+                const total = parseFloat(document.getElementById('total-investment').value);
+                const odds1 = parseFloat(document.getElementById('odds-1').value);
+                const odds2 = parseFloat(document.getElementById('odds-2').value);
+
+                // Math implementation
+                const invOdds1 = 1 / odds1;
+                const invOdds2 = 1 / odds2;
+                const arbitrageBit = invOdds1 + invOdds2;
+
+                const stake1 = (total * invOdds1) / arbitrageBit;
+                const stake2 = (total * invOdds2) / arbitrageBit;
+                const totalPayout = stake1 * odds1;
+
+                const profit = totalPayout - total;
+                const roi = (profit / total) * 100;
+                const isProfitable = profit > 0;
+
+                // Push values to display panel
+                document.getElementById('results-box').classList.remove('hidden');
+                
+                const statusBadge = document.getElementById('arb-status');
+                statusBadge.textContent = isProfitable ? 'Arbitrage Opportunity Found!' : 'No Arbitrage Profit Available';
+                statusBadge.className = `status-badge ${isProfitable ? 'profitable' : 'negative'}`;
+
+                document.getElementById('res-stake-1').textContent = `$${stake1.toFixed(2)}`;
+                document.getElementById('res-stake-2').textContent = `$${stake2.toFixed(2)}`;
+                document.getElementById('res-payout').textContent = `$${totalPayout.toFixed(2)}`;
+                
+                const profitEl = document.getElementById('res-profit');
+                profitEl.textContent = `$${profit.toFixed(2)}`;
+                profitEl.className = isProfitable ? 'text-green' : 'text-red';
+
+                const roiEl = document.getElementById('res-roi');
+                roiEl.textContent = `${roi.toFixed(2)}%`;
+                roiEl.className = isProfitable ? 'text-green' : 'text-red';
+
+                // Log state tracking
+                const entry = {
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                    total: total.toFixed(2),
+                    odds: `${odds1.toFixed(2)} / ${odds2.toFixed(2)}`,
+                    stakes: `${stake1.toFixed(2)} / ${stake2.toFixed(2)}`,
+                    profit: profit.toFixed(2),
+                    roi: roi.toFixed(2),
+                    isProfitable: isProfitable
+                };
+
+                let history = getHistoryData();
+                history.unshift(entry);
+                saveHistoryData(history);
+                
+                renderHistory();
+            });
+
+            clearHistoryBtn.addEventListener('click', () => {
+                if(confirm("Clear history log?")) {
+                    localMemoryHistory = [];
+                    try {
+                        localStorage.removeItem('arb_logs');
+                    } catch(e) {
+                        console.warn("Could not clear local storage:", e);
+                    }
+                    renderHistory();
+                }
+            });
+
+            function renderHistory() {
+                let history = getHistoryData();
+                historyBody.innerHTML = '';
+
+                if (history.length === 0) {
+                    historyBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#9ca3af; padding:20px;">No historical data logged yet.</td></tr>`;
+                    return;
+                }
+
+                history.forEach(log => {
+                    const tr = document.createElement('tr');
+                    const pClass = log.isProfitable ? 'text-green' : 'text-red';
+                    tr.innerHTML = `
+                        <td>${log.time}</td>
+                        <td>$${log.total}</td>
+                        <td>${log.odds}</td>
+                        <td>$${log.stakes}</td>
+                        <td class="${pClass}">$${log.profit} (${log.roi}%)</td>
+                    `;
+                    historyBody.appendChild(tr);
+                });
+            }
+        });
+    </script>

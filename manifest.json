@@ -1,0 +1,17 @@
+{
+  "name": "Arbitrage Surebet Calculator",
+  "short_name": "ArbCalc",
+  "description": "Calculate surebets and track historical calculation logs completely offline.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "https://flaticon.com",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
